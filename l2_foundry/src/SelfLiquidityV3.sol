@@ -301,16 +301,16 @@ contract SelfLiquidityV3 is ERC20, Ownable, Pausable, ReentrancyGuard {
         uint256 D = dormantD();
 
         uint256 maxPay = D < excess ? D : excess;
-        if (owed > maxPay) owed = maxPay;
-        if (owed == 0) return 0;
+        uint256 paidAmount = owed > maxPay ? maxPay : owed;
+        if (paidAmount == 0) return 0;
 
-        totalReserve -= owed;
-        accruedYieldWei[msg.sender] = 0;
+        totalReserve -= paidAmount;
+        accruedYieldWei[msg.sender] = owed - paidAmount;
 
-        (bool ok, ) = payable(msg.sender).call{value: owed}("");
+        (bool ok, ) = payable(msg.sender).call{value: paidAmount}("");
         require(ok, "yield xfer");
-        emit YieldClaimed(msg.sender, owed);
-        return owed;
+        emit YieldClaimed(msg.sender, paidAmount);
+        return paidAmount;
     }
 
     function _update(address from, address to, uint256 value) internal virtual override {
